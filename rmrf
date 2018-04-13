@@ -32,38 +32,38 @@ usage() {
 }
 
 do_bkup() {
-    BKUP_PATH="$1"
+    DIR_PATH="$1"
     [ "$BKUP_SUDO" == "yes" ] && SUDO=sudo
-    if [[ "${FILES[0]}" == "$BKUP_PATH/"* ]]; then
+    if [[ "${FILES[0]}" == "$DIR_PATH/"* ]]; then
         echo "${FILES[0]} ->"
         "$SUDO" tar --absolute-names -xvf "${FILES[0]}" | sed 's/^/  /'
         exit 0
     fi
-    mkdir -p "$BKUP_PATH"
+    mkdir -p "$DIR_PATH"
     "$SUDO" tar --force-local --absolute-names --preserve-permissions --create --verbose --gzip --file "$TARBALL" "${FILES[@]}"
-    "$SUDO" mv "$TARBALL" "$BKUP_PATH"
-    echo "-> $BKUP_PATH/$TARBALL"
-    "$SUDO" rm -rf "${FILES[@]}"
+    "$SUDO" mv "$TARBALL" "$DIR_PATH"
+    echo "-> $DIR_PATH/$TARBALL"
     exit 0
 }
 
 do_rmrf() {
-    RMRF_PATH="$1"
+    DIR_PATH="$1"
     [ "$RMRF_SUDO" == "yes" ] && SUDO=sudo
-    do_bkup "$RMRF_PATH"
-    DELETED=$(find "$RMRF_PATH" -mtime "+$RMRF_KEEP")
+    do_bkup "$DIR_PATH"
+    DELETED=$(find "$DIR_PATH" -mtime "+$RMRF_KEEP")
     if [ -n "$DELETED" ]; then
         echo "$DELETED"
         echo "-> /dev/null"
     fi
-    "$SUDO" find "$RMRF_PATH" -mtime "+$RMRF_KEEP" -delete
+    "$SUDO" find "$DIR_PATH" -mtime "+$RMRF_KEEP" -delete
+    "$SUDO" rm -rf "${FILES[@]}"
     exit 0
 }
 
 do_list() {
-    LIST_PATH="$1"
-    for TARBALL in "$LIST_PATH/"*; do
-        echo "TARBALL=$TARBALL"
+    DIR_PATH="$1"
+    for TARBALL in "$DIR_PATH/"*; do
+        echo "$TARBALL"
         sudo tar --absolute-names -tvf "$TARBALL" | grep -v ^d | sed 's/^/  /'
     done
     exit 0
