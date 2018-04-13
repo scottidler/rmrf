@@ -1,0 +1,87 @@
+#!/bin/bash
+
+if [ -n "$DEBUG" ]; then
+    PS4=':${LINENO}+'
+    set -x
+fi
+
+SUDO=""
+TIMESTAMP=$(date --iso-8601=seconds)
+TARBALL="$TIMESTAMP.tar.gz"
+SCRIPT_NAME="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
+TARGET_NAME="$(basename $0)"
+RMRF_CFG=~/.config/rmrf/rmrf.cfg
+BKUP_CFG=~/.config/bkup/bkup.cfg
+
+#FIXME: this should be removed later
+RMRF_CFG=$(basename $RMRF_CFG)
+BKUP_CFG=$(basename $BKUP_CFG)
+
+[ -f $RMRF_CFG ] && source <(grep = $RMRF_CFG | sed 's/ *= */=/g')
+[ -f $BKUP_CFG ] && source <(grep = $BKUP_CFG | sed 's/ *= */=/g')
+
+FILES=()
+for FILE in "${@}"; do
+    FILES+=("$(realpath "$FILE")")
+done
+
+echo "SCRIPT_NAME=$SCRIPT_NAME, TARGET_NAME=$TARGET_NAME"
+echo "RMRF_PATH=$RMRF_PATH, RMRF_SUDO=$RMRF_SUDO, RMRF_KEEP=$RMRF_KEEP"
+echo "BKUP_PATH=$BKUP_PATH, BKUP_SUDO=$BKUP_SUDO"
+
+usage() {
+    echo "usage"
+}
+
+do_bkup() {
+    PATH="${1:-$BKUP_PATH}"
+    [ "$BKUP_SUDO" == "yes" ] && SUDO=sudo
+    echo "do_bkup: PATH=$PATH"
+    mkdir -p "$PATH"
+    "$SUDO" tar --force-local --absolute-names --preserve-permissions --create --verbose --gzip --file "$TARBALL" "${FILES[@]}"
+    "$SUDO" mv "$TARBALL" "$PATH"
+    echo "-> $PATH/$TARBALL"
+}
+
+do_rmrf() {
+    PATH=${1:-$RMRF_PATH}
+    [ "$RMRF_SUDO" == "yes" ] && SUDO=sudo
+    echo "do_rmrf: PATH=$PATH"
+    do_bkup $PATH
+    DELETED=$(find "$PATH" -mtime "+$RMRF_KEEP")
+    if [ -n "$DELETED" ]; then
+        for TARBALL in "$DELETED"; do
+            echo "$TARBALL"
+        done
+        echo "-> /dev/null"
+    fi
+    "$SUDO" find "$PATH" -mtime "+$RMRF_KEEP" -delete
+    "$SUDO" rm -rf "${FILES[@]}"
+}
+
+do_list() {
+    PATH="$1"
+    echo "do_list: PATH=$PATH"
+    for TARBALL in "$PATH"*; do
+        tar --absolute-name -tvf "$TARBALL" | grep -v ^d | sed 's/^/  /'
+    done
+    exit0
+}
+
+case "$TARGET_NAME" in
+    bkup)
+        do_bkup
+        ;;
+    rmrf)
+        do_rmrf
+        ;;
+    ls-bkup)
+        do_list "$BKUP_PATH"
+        ;;
+    ls-rmrf)
+        do_list "$RMRF_PATH"
+        ;;
+    *)
+        usage
+        ;;
+esac
