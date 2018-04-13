@@ -26,15 +26,22 @@ for FILE in "${@}"; do
 done
 usage() {
     echo "usage"
+    exit -1
 }
 
 do_bkup() {
     BKUP_PATH="$1"
     [ "$BKUP_SUDO" == "yes" ] && SUDO=sudo
+    if [[ "${FILES[0]}" == "$BKUP_PATH/"* ]]; then
+        echo "${FILES[0]} ->"
+        "$SUDO" tar --absolute-names -xvf "${FILES[0]}" | sed 's/^/  /'
+        exit 0
+    fi
     mkdir -p "$BKUP_PATH"
     "$SUDO" tar --force-local --absolute-names --preserve-permissions --create --verbose --gzip --file "$TARBALL" "${FILES[@]}"
     "$SUDO" mv "$TARBALL" "$BKUP_PATH"
     echo "-> $BKUP_PATH/$TARBALL"
+    exit 0
 }
 
 do_rmrf() {
@@ -48,6 +55,7 @@ do_rmrf() {
     fi
     "$SUDO" find "$RMRF_PATH" -mtime "+$RMRF_KEEP" -delete
     "$SUDO" rm -rf "${FILES[@]}"
+    exit 0
 }
 
 do_list() {
