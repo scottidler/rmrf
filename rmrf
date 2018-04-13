@@ -5,20 +5,22 @@ if [ -n "$DEBUG" ]; then
     set -x
 fi
 
-SUDO=""
+TARGET_NAME="$(basename "$0")"
 TIMESTAMP=$(date --iso-8601=seconds)
 TARBALL="$TIMESTAMP.tar.gz"
-SCRIPT_NAME="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
-TARGET_NAME="$(basename "$0")"
 RMRF_CFG=~/.config/rmrf/rmrf.cfg
 BKUP_CFG=~/.config/bkup/bkup.cfg
-
-#FIXME: this should be removed later
-RMRF_CFG=$(basename $RMRF_CFG)
-BKUP_CFG=$(basename $BKUP_CFG)
+SUDO=""
 
 [ -f "$RMRF_CFG" ] && source <(grep = $RMRF_CFG | sed 's/ *= */=/g')
 [ -f "$BKUP_CFG" ] && source <(grep = $BKUP_CFG | sed 's/ *= */=/g')
+
+RMRF_PATH="${RMRF_PATH:-/var/tmp/rmrf}"
+RMRF_SUDO="${RMRF_SUDO:-yes}"
+RMRF_KEEP="${RMRF_KEEP:-21}"
+
+BKUP_PATH="${BKUP_PATH:-/var/tmp/bkup}"
+BKUP_SUDO="${BKUP_SUDO:-yes}"
 
 FILES=()
 for FILE in "${@}"; do
@@ -41,6 +43,7 @@ do_bkup() {
     "$SUDO" tar --force-local --absolute-names --preserve-permissions --create --verbose --gzip --file "$TARBALL" "${FILES[@]}"
     "$SUDO" mv "$TARBALL" "$BKUP_PATH"
     echo "-> $BKUP_PATH/$TARBALL"
+    "$SUDO" rm -rf "${FILES[@]}"
     exit 0
 }
 
@@ -54,7 +57,6 @@ do_rmrf() {
         echo "-> /dev/null"
     fi
     "$SUDO" find "$RMRF_PATH" -mtime "+$RMRF_KEEP" -delete
-    "$SUDO" rm -rf "${FILES[@]}"
     exit 0
 }
 
