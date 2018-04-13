@@ -24,11 +24,6 @@ FILES=()
 for FILE in "${@}"; do
     FILES+=("$(realpath "$FILE")")
 done
-
-echo "SCRIPT_NAME=$SCRIPT_NAME, TARGET_NAME=$TARGET_NAME"
-echo "RMRF_PATH=$RMRF_PATH, RMRF_SUDO=$RMRF_SUDO, RMRF_KEEP=$RMRF_KEEP"
-echo "BKUP_PATH=$BKUP_PATH, BKUP_SUDO=$BKUP_SUDO"
-
 usage() {
     echo "usage"
 }
@@ -36,7 +31,6 @@ usage() {
 do_bkup() {
     BKUP_PATH="$1"
     [ "$BKUP_SUDO" == "yes" ] && SUDO=sudo
-    echo "do_bkup: BKUP_PATH=$BKUP_PATH"
     mkdir -p "$BKUP_PATH"
     "$SUDO" tar --force-local --absolute-names --preserve-permissions --create --verbose --gzip --file "$TARBALL" "${FILES[@]}"
     "$SUDO" mv "$TARBALL" "$BKUP_PATH"
@@ -46,7 +40,6 @@ do_bkup() {
 do_rmrf() {
     RMRF_PATH="$1"
     [ "$RMRF_SUDO" == "yes" ] && SUDO=sudo
-    echo "do_rmrf: RMRF_PATH=$RMRF_PATH"
     do_bkup "$RMRF_PATH"
     DELETED=$(find "$RMRF_PATH" -mtime "+$RMRF_KEEP")
     if [ -n "$DELETED" ]; then
@@ -59,7 +52,6 @@ do_rmrf() {
 
 do_list() {
     LIST_PATH="$1"
-    echo "do_list: LIST_PATH=$LIST_PATH"
     for TARBALL in "$LIST_PATH/"*; do
         echo "TARBALL=$TARBALL"
         sudo tar --absolute-names -tvf "$TARBALL" | grep -v ^d | sed 's/^/  /'
