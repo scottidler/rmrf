@@ -37,13 +37,21 @@ do_bkup() {
     if [[ "${FILES[0]}" == "$DIR_PATH/"* ]]; then
         echo "${FILES[0]} ->"
         "$SUDO" tar --absolute-names -xvf "${FILES[0]}" | sed 's/^/  /'
-        exit 0
+        return 0
     fi
     mkdir -p "$DIR_PATH"
-    "$SUDO" tar --force-local --absolute-names --preserve-permissions --create --verbose --gzip --file "$TARBALL" "${FILES[@]}"
+    "$SUDO" tar \
+        --force-local \
+        --absolute-names \
+        --preserve-permissions \
+        --create \
+        --verbose \
+        --gzip \
+        --file \
+        "$TARBALL" \
+        "${FILES[@]}"
     "$SUDO" mv "$TARBALL" "$DIR_PATH"
     echo "-> $DIR_PATH/$TARBALL"
-    exit 0
 }
 
 do_rmrf() {
@@ -57,16 +65,16 @@ do_rmrf() {
     fi
     "$SUDO" find "$DIR_PATH" -mtime "+$RMRF_KEEP" -delete
     "$SUDO" rm -rf "${FILES[@]}"
-    exit 0
 }
 
 do_list() {
     DIR_PATH="$1"
     for TARBALL in "$DIR_PATH/"*; do
-        echo "$TARBALL"
+        du -ah "$TARBALL" | sed 's/\t/ /'
         sudo tar --absolute-names -tvf "$TARBALL" | grep -v ^d | sed 's/^/  /'
     done
-    exit 0
+    echo
+    du -h "$DIR_PATH"
 }
 
 case "$TARGET_NAME" in
