@@ -22,6 +22,8 @@ RMRF_KEEP="${RMRF_KEEP:-21}"
 BKUP_PATH="${BKUP_PATH:-/var/tmp/bkup}"
 BKUP_SUDO="${BKUP_SUDO:-yes}"
 
+mkdir -p $RMRF_PATH $BKUP_PATH
+
 FILES=()
 for FILE in "${@}"; do
     FILES+=("$(realpath "$FILE")")
@@ -67,10 +69,10 @@ archive() {
 
 list() {
     DIR_PATH="$1"
-    for TARBALL in "$DIR_PATH/"*; do
+    while read TARBALL; do
         du -ah "$TARBALL" | sed 's/\t/ /'
         sudo tar --absolute-names -tvf "$TARBALL" | grep -v ^d | sed 's/^/  /'
-    done
+    done < <(find $DIR_PATH -name *.tar.gz)
     echo
     du -h "$DIR_PATH"
 }
