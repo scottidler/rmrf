@@ -6,8 +6,8 @@ if [ -n "$DEBUG" ]; then
 fi
 
 TARGET_NAME="$(basename "$0")"
-TIMESTAMP=$(date --iso-8601=seconds)
-TARBALL="$TIMESTAMP.tar.gz"
+TIMESTAMP=$(date +%Y-%m-%dT%H-%M-%S%z)
+TARBALL="${TIMESTAMP}.tar.gz"
 RMRF_CFG=~/.config/rmrf/rmrf.cfg
 BKUP_CFG=~/.config/bkup/bkup.cfg
 SUDO=""
@@ -15,11 +15,11 @@ SUDO=""
 [ -f "$RMRF_CFG" ] && source <(grep = $RMRF_CFG | sed 's/ *= */=/g')
 [ -f "$BKUP_CFG" ] && source <(grep = $BKUP_CFG | sed 's/ *= */=/g')
 
-RMRF_PATH="${RMRF_PATH:-/var/tmp/rmrf}"
+RMRF_PATH=$(realpath "${RMRF_PATH:-/var/tmp/rmrf}")
 RMRF_SUDO="${RMRF_SUDO:-yes}"
 RMRF_KEEP="${RMRF_KEEP:-21}"
 
-BKUP_PATH="${BKUP_PATH:-/var/tmp/bkup}"
+BKUP_PATH=$(realpath "${BKUP_PATH:-/var/tmp/bkup}")
 BKUP_SUDO="${BKUP_SUDO:-yes}"
 
 mkdir -p $RMRF_PATH $BKUP_PATH
@@ -45,14 +45,13 @@ archive() {
     fi
     mkdir -p "$DIR_PATH"
     "$SUDO" tar \
-        --force-local \
         --absolute-names \
         --preserve-permissions \
         --create \
         --verbose \
         --gzip \
         --file \
-        "$TARBALL" \
+        $(realpath "$TARBALL") \
         "${FILES[@]}"
     "$SUDO" mv "$TARBALL" "$DIR_PATH"
     echo "-> $DIR_PATH/$TARBALL"
